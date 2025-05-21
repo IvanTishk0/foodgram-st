@@ -8,14 +8,14 @@ import {
   Container,
   Main,
   Icons,
-} from "../../components";
+} from "../../components/index.js";
 import cn from "classnames";
 import styles from "./styles.module.css";
 import { useRecipes } from "../../utils/index.js";
 import { useEffect, useState, useContext } from "react";
-import api from "../../api";
+import api from "../../api/index.js";
 import { useParams, useHistory } from "react-router-dom";
-import { AuthContext, UserContext } from "../../contexts";
+import { AuthContext, UserContext } from "../../contexts/index.js";
 import MetaTags from "react-meta-tags";
 import DefaultImage from "../../images/userpic-icon.jpg";
 

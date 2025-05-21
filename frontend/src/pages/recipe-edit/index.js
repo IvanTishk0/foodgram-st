@@ -147,19 +147,22 @@ const RecipeEdit = ({ onItemDelete }) => {
             if (checkIfDisabled()) {
               return;
             }
-            const data = {
-              text: recipeText,
-              name: recipeName,
-              ingredients: recipeIngredients.map((item) => ({
-                id: item.id,
-                amount: item.amount,
-              })),
-              cooking_time: recipeTime,
-              image: recipeFile,
-              recipe_id: id,
-            };
+            const ingredientsData = recipeIngredients.map((item) => ({
+              id: item.id,
+              amount: item.amount,
+            }));
+            console.log('Подготовленные ингредиенты:', ingredientsData);
+            
+            // Явно передаем все поля в updateRecipe
             api
-              .updateRecipe(data, recipeFileWasManuallyChanged)
+              .updateRecipe({
+                name: recipeName,
+                recipe_id: id,
+                image: recipeFile,
+                cooking_time: recipeTime,
+                text: recipeText,
+                ingredients_write: ingredientsData
+              }, recipeFileWasManuallyChanged)
               .then((res) => {
                 history.push(`/recipes/${id}`);
               })

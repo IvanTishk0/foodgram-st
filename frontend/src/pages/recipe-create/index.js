@@ -4,7 +4,6 @@ import {
   FileInput,
   Input,
   Title,
-  CheckboxGroup,
   Main,
   Form,
   Button,
@@ -13,7 +12,6 @@ import {
 import styles from "./styles.module.css";
 import api from "../../api";
 import { useEffect, useState } from "react";
-import { useTags } from "../../utils";
 import { useHistory } from "react-router-dom";
 import MetaTags from "react-meta-tags";
 import { Icons } from "../../components";
@@ -70,10 +68,11 @@ const RecipeCreate = ({ onEdit }) => {
   useEffect(
     (_) => {
       if (ingredientValue.name === "") {
-        return setIngredients([]);
+        setIngredients([]);
+        return;
       }
-      api.getIngredients({ name: ingredientValue.name }).then((ingredients) => {
-        setIngredients(ingredients);
+      api.getIngredients({ name: ingredientValue.name }).then((apiData) => {
+        setIngredients(apiData || []);
       });
     },
     [ingredientValue.name]
@@ -123,13 +122,14 @@ const RecipeCreate = ({ onEdit }) => {
             const data = {
               text: recipeText,
               name: recipeName,
-              ingredients: recipeIngredients.map((item) => ({
+              ingredients_write: recipeIngredients.map((item) => ({
                 id: item.id,
-                amount: item.amount,
+                amount: Number(item.amount),
               })),
-              cooking_time: recipeTime,
+              cooking_time: Number(recipeTime),
               image: recipeFile,
             };
+            console.log('Отправляемые данные для создания рецепта:', JSON.stringify(data, null, 2));
             api
               .createRecipe(data)
               .then((res) => {

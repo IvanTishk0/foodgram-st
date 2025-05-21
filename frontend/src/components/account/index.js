@@ -1,12 +1,12 @@
 import styles from "./styles.module.css";
 import { useContext, useEffect, useState } from "react";
 import { LinkComponent, Orders } from "../index.js";
-import { AuthContext, UserContext } from "../../contexts";
-import { UserMenu } from "../../configs/navigation";
-import Icons from "../icons";
+import { AuthContext, UserContext } from "../../contexts/index.js";
+import { UserMenu } from "../../configs/navigation.js";
+import Icons from "../icons/index.js";
 import DefaultImage from "../../images/userpic-icon.jpg";
-import { AvatarPopup } from "../avatar-popup";
-import api from "../../api";
+import { AvatarPopup } from "../avatar-popup/index.js";
+import api from "../../api/index.js";
 
 const AccountData = ({ userContext, setIsChangeAvatarOpen }) => {
   return (

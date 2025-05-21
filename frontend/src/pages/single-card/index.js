@@ -5,19 +5,19 @@ import {
   Button,
   Icons,
   LinkComponent,
-} from "../../components";
-import { UserContext, AuthContext } from "../../contexts";
+} from "../../components/index.js";
+import { UserContext, AuthContext } from "../../contexts/index.js";
 import { useContext, useState, useEffect } from "react";
 import styles from "./styles.module.css";
-import Ingredients from "./ingredients";
-import Description from "./description";
+import Ingredients from "./ingredients/index.js";
+import Description from "./description/index.js";
 import cn from "classnames";
 import { useRouteMatch, useParams, useHistory } from "react-router-dom";
 import MetaTags from "react-meta-tags";
 import DefaultImage from "../../images/userpic-icon.jpg";
 import { useRecipe } from "../../utils/index.js";
-import api from "../../api";
-import { Notification } from "../../components/notification";
+import api from "../../api/index.js";
+import { Notification } from "../../components/notification/index.js";
 
 const SingleCard = ({ loadItem, updateOrders }) => {
   const [loading, setLoading] = useState(true);

@@ -1,9 +1,9 @@
 import styles from './styles.module.css'
 import { useContext } from 'react'
 import { LinkComponent, Account, Button } from '../index.js'
-import { AuthContext } from '../../contexts'
+import { AuthContext } from '../../contexts/index.js'
 import { useLocation } from 'react-router-dom'
-import { NotLoggedInMenu } from '../../configs/navigation'
+import { NotLoggedInMenu } from '../../configs/navigation.js'
 
 const AccountMenu = ({ onSignOut, orders }) => {
   const authContext = useContext(AuthContext)

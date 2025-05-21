@@ -167,45 +167,70 @@ class Api {
     image,
     cooking_time = 0,
     text = "",
-    ingredients = [],
+    ingredients_write = [],
   }) {
     const token = localStorage.getItem("token");
+    console.log('Данные для создания рецепта:', { 
+      name, 
+      image, 
+      cooking_time, 
+      text, 
+      ingredients_write 
+    });
+    const requestBody = {
+      name,
+      image,
+      cooking_time,
+      text,
+      ingredients_write,
+    };
+    console.log('Тело запроса для создания:', JSON.stringify(requestBody));
     return fetch("/api/recipes/", {
       method: "POST",
       headers: {
         ...this._headers,
         authorization: `Token ${token}`,
       },
-      body: JSON.stringify({
-        name,
-        image,
-        cooking_time,
-        text,
-        ingredients,
-      }),
+      body: JSON.stringify(requestBody),
     }).then(this.checkResponse);
   }
 
   updateRecipe(
-    { name, recipe_id, image, cooking_time, text, ingredients },
+    { name, recipe_id, image, cooking_time, text, ingredients_write },
     wasImageUpdated
   ) {
     // image was changed
     const token = localStorage.getItem("token");
+    console.log('Входные данные в updateRecipe:', {
+      name,
+      recipe_id,
+      image,
+      cooking_time,
+      text,
+      ingredients_write,
+      wasImageUpdated
+    });
+    
+    // Явно создаем объект с нужными полями
+    const requestBody = {
+      name,
+      id: recipe_id,
+      image: wasImageUpdated ? image : undefined,
+      cooking_time: Number(cooking_time),
+      text,
+      ingredients_write: ingredients_write || [] // Убедимся, что поле всегда существует
+    };
+    
+    console.log('Тело запроса:', requestBody);
+    console.log('Строка запроса:', JSON.stringify(requestBody));
+    
     return fetch(`/api/recipes/${recipe_id}/`, {
       method: "PATCH",
       headers: {
         ...this._headers,
         authorization: `Token ${token}`,
       },
-      body: JSON.stringify({
-        name,
-        id: recipe_id,
-        image: wasImageUpdated ? image : undefined,
-        cooking_time: Number(cooking_time),
-        text,
-        ingredients,
-      }),
+      body: JSON.stringify(requestBody),
     }).then(this.checkResponse);
   }
 
@@ -222,7 +247,7 @@ class Api {
 
   removeFromFavorites({ id }) {
     const token = localStorage.getItem("token");
-    return fetch(`/api/recipes/${id}/favorite/`, {
+    return fetch(`/api/recipes/${id}/remove-favorite/`, {
       method: "DELETE",
       headers: {
         ...this._headers,
@@ -326,7 +351,7 @@ class Api {
 
   removeFromOrders({ id }) {
     const token = localStorage.getItem("token");
-    return fetch(`/api/recipes/${id}/shopping_cart/`, {
+    return fetch(`/api/recipes/${id}/remove-shopping-cart/`, {
       method: "DELETE",
       headers: {
         ...this._headers,

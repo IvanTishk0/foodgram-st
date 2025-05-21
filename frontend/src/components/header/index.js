@@ -1,6 +1,6 @@
 import styles from './style.module.css'
 import { Nav, AccountMenu, LinkComponent } from '../index.js'
-import Container from '../container'
+import Container from '../container/index.js'
 import LogoHeader from '../../images/logo-header.png'
 
 const Header = ({ loggedIn, onSignOut, orders }) => {

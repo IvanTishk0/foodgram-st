@@ -1,4 +1,4 @@
-import navigation from '../../configs/navigation'
+import navigation from '../../configs/navigation.js'
 import cn from 'classnames'
 import styles from './style.module.css'
 import { useLocation } from 'react-router-dom'
