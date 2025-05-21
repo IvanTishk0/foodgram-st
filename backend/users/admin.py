@@ -5,10 +5,19 @@ from .models import Follow
 
 User = get_user_model()
 
+
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     search_fields = ('email', 'username')
-    list_display = ('id', 'username', 'email', 'first_name', 'last_name', 'is_staff')
+    list_display = (
+        'id',
+        'username',
+        'email',
+        'first_name',
+        'last_name',
+        'is_staff'
+    )
+
 
 @admin.register(Follow)
 class FollowAdmin(admin.ModelAdmin):

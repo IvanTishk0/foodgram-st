@@ -1,10 +1,10 @@
-from django.shortcuts import render
 from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions, viewsets
 from .models import Follow
 from .serializers import (
     UserSerializer, FollowSerializer, UserCreateSerializer, 
-    SetPasswordSerializer, SubscriptionSerializer, CustomAuthTokenSerializer
+    SetPasswordSerializer, SubscriptionSerializer,
+    CustomAuthTokenSerializer
 )
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.views import APIView
@@ -12,19 +12,23 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
-from rest_framework.generics import ListAPIView, get_object_or_404, RetrieveAPIView
-from django.core.mail import send_mail
+from rest_framework.generics import (
+    ListAPIView, get_object_or_404, RetrieveAPIView
+)
 
 User = get_user_model()
 
+
 class UserPagination(PageNumberPagination):
     page_size_query_param = 'limit'
+
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     pagination_class = UserPagination
+
 
 class FollowViewSet(viewsets.ModelViewSet):
     serializer_class = FollowSerializer
@@ -36,6 +40,7 @@ class FollowViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+
 class UserCreateView(generics.CreateAPIView):
     serializer_class = UserCreateSerializer
     permission_classes = [permissions.AllowAny]
@@ -45,14 +50,23 @@ class UserCreateView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
+
 
 class CurrentUserView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         serializer = UserSerializer(request.user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK
+        )
+
 
 class UserAvatarUpdateView(generics.UpdateAPIView):
     serializer_class = UserSerializer
@@ -65,7 +79,8 @@ class UserAvatarUpdateView(generics.UpdateAPIView):
         print("Request data for avatar update:", request.data)
         if 'avatar' in request.data:
             print("Avatar data type:", type(request.data['avatar']))
-            print("Avatar data (first 100 chars):", str(request.data['avatar'])[:100])
+            print("Avatar data (first 100 chars):",
+                str(request.data['avatar'])[:100])
         
         kwargs['partial'] = True
         try:
@@ -78,9 +93,13 @@ class UserAvatarUpdateView(generics.UpdateAPIView):
 
     def delete(self, request, *args, **kwargs):
         user = self.get_object()
-        if user.avatar: # Проверяем, есть ли аватар
+        if user.avatar:
             user.avatar.delete(save=True)
-        return Response({'detail': 'Аватар удалён.'}, status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {'detail': 'Аватар удалён.'},
+            status=status.HTTP_204_NO_CONTENT
+        )
+
 
 class UserAvatarDeleteView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -91,6 +110,7 @@ class UserAvatarDeleteView(APIView):
         user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+
 class SetPasswordView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -98,11 +118,15 @@ class SetPasswordView(APIView):
         serializer = SetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = request.user
-        if not user.check_password(serializer.validated_data['current_password']):
-            return Response({'current_password': ['Неверный текущий пароль.']}, status=status.HTTP_400_BAD_REQUEST)
+        if not user.check_password(
+            serializer.validated_data['current_password']):
+            return Response(
+                {'current_password': ['Неверный текущий пароль.']},
+                status=status.HTTP_400_BAD_REQUEST)
         user.set_password(serializer.validated_data['new_password'])
         user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class CustomAuthToken(ObtainAuthToken):
     permission_classes = [permissions.AllowAny]
@@ -113,9 +137,8 @@ class CustomAuthToken(ObtainAuthToken):
         try:
             serializer.is_valid(raise_exception=True)
             user = serializer.validated_data['user']
-            token, created = Token.objects.get_or_create(user=user)
+            token, _ = Token.objects.get_or_create(user=user)
             
-            # Получаем полные данные пользователя
             user_data = UserSerializer(user).data
             
             return Response({
@@ -128,19 +151,18 @@ class CustomAuthToken(ObtainAuthToken):
                 'error': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
 
+
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         try:
-            # Проверяем наличие токена
             if not hasattr(request.user, 'auth_token'):
                 return Response(
                     {'error': 'Токен не найден'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Удаляем токен
             request.user.auth_token.delete()
             return Response(
                 {'message': 'Успешный выход из системы'},
@@ -152,8 +174,10 @@ class LogoutView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+
 class SubscriptionPagination(PageNumberPagination):
     page_size_query_param = 'limit'
+
 
 class SubscriptionListView(ListAPIView):
     serializer_class = SubscriptionSerializer
@@ -163,17 +187,27 @@ class SubscriptionListView(ListAPIView):
     def get_queryset(self):
         return self.request.user.follower.select_related('author').all()
 
+
 class SubscribeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, id):
         author = get_object_or_404(get_user_model(), id=id)
         if author == request.user:
-            return Response({'errors': 'Нельзя подписаться на самого себя.'}, status=400)
+            return Response(
+                {'errors': 'Нельзя подписаться на самого себя.'},
+                status=400
+            )
         if Follow.objects.filter(user=request.user, author=author).exists():
-            return Response({'errors': 'Вы уже подписаны на этого пользователя.'}, status=400)
+            return Response(
+                {'errors': 'Вы уже подписаны на этого пользователя.'},
+                status=400
+            )
         follow = Follow.objects.create(user=request.user, author=author)
-        serializer = SubscriptionSerializer(follow, context={'request': request})
+        serializer = SubscriptionSerializer(
+            follow,
+            context={'request': request}
+        )
         return Response(serializer.data, status=201)
 
     def delete(self, request, id):
@@ -184,16 +218,19 @@ class SubscribeView(APIView):
         follow.delete()
         return Response(status=204)
 
+
 class UserListView(ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     pagination_class = UserPagination
 
+
 class UserDetailView(RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
 
 class UserListCreateView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -209,6 +246,7 @@ class UserListCreateView(APIView):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
 class ResetPasswordView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -218,5 +256,11 @@ class ResetPasswordView(APIView):
             return Response({'error': 'Email обязателен'}, status=400)
         user = User.objects.filter(email=email).first()
         if not user:
-            return Response({'error': 'Пользователь с таким email не найден'}, status=404)
-        return Response({'detail': 'Инструкция по сбросу пароля отправлена на email (заглушка).'}, status=200)
+            return Response(
+                {'error': 'Пользователь с таким email не найден'},
+                status=404
+            )
+        return Response(
+            {'detail': 'Инструкция по сбросу пароля отправлена на email (заглушка).'},
+            status=200
+        )

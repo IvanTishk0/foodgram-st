@@ -3,6 +3,7 @@ from django.core.management.base import BaseCommand, CommandError
 from recipes.models import Ingredient
 from django.db import transaction
 
+
 class Command(BaseCommand):
     help = 'Loads ingredients from a JSON file into the database'
 
@@ -11,7 +12,7 @@ class Command(BaseCommand):
             '--json_path',
             type=str,
             default='/app/data/ingredients.json',
-            help='Path to the JSON file with ingredients (inside the container)'
+            help='Path to the JSON file with ingredients'
         )
 
     def handle(self, *args, **options):
@@ -23,7 +24,7 @@ class Command(BaseCommand):
         except FileNotFoundError:
             raise CommandError(f'File not found: {json_file_path}')
         except json.JSONDecodeError:
-            raise CommandError(f'Error decoding JSON from file: {json_file_path}')
+            raise CommandError(f'Error decoding JSON: {json_file_path}')
 
         created_count = 0
         updated_count = 0
@@ -39,7 +40,7 @@ class Command(BaseCommand):
                     continue
 
                 try:
-                    ingredient, created = Ingredient.objects.update_or_create(
+                    _, created = Ingredient.objects.update_or_create(
                         name=name,
                         defaults={'measurement_unit': measurement_unit}
                     )
@@ -47,8 +48,5 @@ class Command(BaseCommand):
                         created_count += 1
                     else:
                         updated_count += 1
-                except Exception as e:
+                except Exception:
                     skipped_count += 1
-        
-        # self.stdout.write(self.style.SUCCESS(f'Finished loading ingredients.')) # Removed
-        # self.stdout.write(f'Created: {created_count}, Updated: {updated_count}, Skipped: {skipped_count}') # Removed 

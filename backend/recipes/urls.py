@@ -5,4 +5,4 @@ router = DefaultRouter()
 router.register(r'ingredients', IngredientViewSet, basename='ingredient')
 router.register(r'recipes', RecipeViewSet, basename='recipe')
 
-urlpatterns = router.urls 
+urlpatterns = router.urls
