@@ -122,8 +122,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         ]
         content = '\n'.join(lines)
         response = HttpResponse(content, content_type='text/plain')
-        response['Content-Disposition'] = ('attachment; '
-                                        'filename="shopping_list.txt"')
+        response['Content-Disposition'] = (
+            'attachment; '
+            'filename="shopping_list.txt"'
+        )
         return response
 
     @action(
@@ -141,7 +143,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = self.get_object()
         if ShoppingCart.objects.filter(
             user=request.user,
-            recipe=recipe).exists():
+            recipe=recipe
+        ).exists():
             return Response(
                 {'errors': 'Рецепт уже в списке покупок.'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -192,7 +195,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = self.get_object()
         if Favorite.objects.filter(
             user=request.user,
-            recipe=recipe).exists():
+            recipe=recipe
+        ).exists():
             return Response(
                 {'errors': 'Рецепт уже в избранном.'},
                 status=status.HTTP_400_BAD_REQUEST

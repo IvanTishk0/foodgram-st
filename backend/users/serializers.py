@@ -22,8 +22,10 @@ class CustomAuthTokenSerializer(serializers.Serializer):
         password = attrs.get('password')
 
         if email and password:
-            user = authenticate(request=self.context.get('request'),
-                            username=email, password=password)
+            user = authenticate(
+                request=self.context.get('request'),
+                username=email, password=password
+            )
 
             if not user:
                 msg = 'Неверный email или пароль'
