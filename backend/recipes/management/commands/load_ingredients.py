@@ -50,3 +50,10 @@ class Command(BaseCommand):
                         updated_count += 1
                 except Exception:
                     skipped_count += 1
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'Ingredients loaded: {created_count} created, '
+                f'{updated_count} updated, {skipped_count} skipped'
+            )
+        )
