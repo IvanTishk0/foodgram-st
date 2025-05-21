@@ -1,11 +1,14 @@
-from django.shortcuts import render
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from .models import Ingredient, Recipe, ShoppingCart, Favorite
-from .serializers import IngredientSerializer, RecipeSerializer, RecipeCreateSerializer, RecipeUpdateSerializer
+from .serializers import (
+    IngredientSerializer, RecipeSerializer,
+    RecipeCreateSerializer, RecipeUpdateSerializer
+)
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, BasePermission
-from rest_framework import filters
+from rest_framework.permissions import (
+    IsAuthenticatedOrReadOnly, BasePermission
+)
 from rest_framework.decorators import action
 from django.http import HttpResponse
 
@@ -114,13 +117,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 key = (name, unit)
                 ingredients[key] = ingredients.get(key, 0) + amount
         lines = [
-            f'{name} ({unit}) — {amount}' 
+            f'{name} ({unit}) — {amount}'
             for (name, unit), amount in ingredients.items()
         ]
         content = '\n'.join(lines)
         response = HttpResponse(content, content_type='text/plain')
         response['Content-Disposition'] = ('attachment; '
-                                         'filename="shopping_list.txt"')
+                                        'filename="shopping_list.txt"')
         return response
 
     @action(
@@ -199,7 +202,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             recipe=recipe
         )
         serializer = RecipeSerializer(
-            recipe,context={'request': request}
+            recipe, context={'request': request}
         )
         return Response(
             serializer.data,

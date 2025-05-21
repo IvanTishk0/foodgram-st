@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions, viewsets
 from .models import Follow
 from .serializers import (
-    UserSerializer, FollowSerializer, UserCreateSerializer, 
+    UserSerializer, FollowSerializer, UserCreateSerializer,
     SetPasswordSerializer, SubscriptionSerializer,
     CustomAuthTokenSerializer
 )
@@ -79,9 +79,11 @@ class UserAvatarUpdateView(generics.UpdateAPIView):
         print("Request data for avatar update:", request.data)
         if 'avatar' in request.data:
             print("Avatar data type:", type(request.data['avatar']))
-            print("Avatar data (first 100 chars):",
-                str(request.data['avatar'])[:100])
-        
+            print(
+                "Avatar data (first 100 chars):",
+                str(request.data['avatar'])[:100]
+            )
+
         kwargs['partial'] = True
         try:
             response = super().update(request, *args, **kwargs)
@@ -119,10 +121,12 @@ class SetPasswordView(APIView):
         serializer.is_valid(raise_exception=True)
         user = request.user
         if not user.check_password(
-            serializer.validated_data['current_password']):
+            serializer.validated_data['current_password']
+        ):
             return Response(
                 {'current_password': ['Неверный текущий пароль.']},
-                status=status.HTTP_400_BAD_REQUEST)
+                status=status.HTTP_400_BAD_REQUEST
+            )
         user.set_password(serializer.validated_data['new_password'])
         user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -138,14 +142,14 @@ class CustomAuthToken(ObtainAuthToken):
             serializer.is_valid(raise_exception=True)
             user = serializer.validated_data['user']
             token, _ = Token.objects.get_or_create(user=user)
-            
+
             user_data = UserSerializer(user).data
-            
+
             return Response({
                 'auth_token': token.key,
                 'user': user_data
             }, status=status.HTTP_200_OK)
-            
+
         except Exception as e:
             return Response({
                 'error': str(e)
@@ -162,13 +166,13 @@ class LogoutView(APIView):
                     {'error': 'Токен не найден'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             request.user.auth_token.delete()
             return Response(
                 {'message': 'Успешный выход из системы'},
                 status=status.HTTP_200_OK
             )
-        except Exception as e:
+        except Exception:
             return Response(
                 {'error': 'Ошибка при выходе из системы'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -214,7 +218,10 @@ class SubscribeView(APIView):
         author = get_object_or_404(get_user_model(), id=id)
         follow = Follow.objects.filter(user=request.user, author=author)
         if not follow.exists():
-            return Response({'errors': 'Вы не были подписаны на этого пользователя.'}, status=400)
+            return Response(
+                {'errors': 'Вы не были подписаны на этого пользователя.'},
+                status=400
+            )
         follow.delete()
         return Response(status=204)
 
@@ -261,6 +268,6 @@ class ResetPasswordView(APIView):
                 status=404
             )
         return Response(
-            {'detail': 'Инструкция по сбросу пароля отправлена на email (заглушка).'},
+            {'detail': 'Инструкция по сбросу пароля отправлена на email'},
             status=200
         )

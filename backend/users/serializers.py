@@ -23,12 +23,12 @@ class CustomAuthTokenSerializer(serializers.Serializer):
 
         if email and password:
             user = authenticate(request=self.context.get('request'),
-                              username=email, password=password)
+                            username=email, password=password)
 
             if not user:
                 msg = 'Неверный email или пароль'
                 raise serializers.ValidationError(msg, code='authorization')
-            
+
             if not user.is_active:
                 msg = 'Пользователь неактивен'
                 raise serializers.ValidationError(msg, code='authorization')
@@ -42,6 +42,7 @@ class CustomAuthTokenSerializer(serializers.Serializer):
 
 class UserSerializer(serializers.ModelSerializer):
     avatar = Base64ImageField(required=False, allow_null=True)
+
     class Meta:
         model = User
         fields = (
@@ -116,10 +117,10 @@ class UserCreateSerializer(serializers.ModelSerializer):
             if avatar:
                 user.avatar = avatar
                 user.save()
-            
+
             from rest_framework.authtoken.models import Token
             token, _ = Token.objects.get_or_create(user=user)
-            
+
             self.token = token.key
             return user
         except Exception as e:

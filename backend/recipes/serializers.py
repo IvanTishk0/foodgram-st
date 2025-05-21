@@ -40,6 +40,7 @@ class RecipeIngredientWriteSerializer(serializers.ModelSerializer):
         model = RecipeIngredient
         fields = ('id', 'amount')
 
+
 class RecipeIngredientReadSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField(source='ingredient.id')
     name = serializers.ReadOnlyField(source='ingredient.name')
@@ -122,7 +123,13 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
-            'id', 'ingredients', 'ingredients_write', 'image', 'name', 'text', 'cooking_time'
+            'id',
+            'ingredients',
+            'ingredients_write',
+            'image',
+            'name',
+            'text',
+            'cooking_time'
         )
 
     def validate_cooking_time(self, value):
@@ -151,7 +158,7 @@ class RecipeUpdateSerializer(RecipeCreateSerializer):
         many=True,
         write_only=True,
         source='recipe_ingredients_data_for_write',
-        required=False 
+        required=False
     )
     image = Base64ImageField(required=False, allow_null=True)
 
@@ -162,7 +169,7 @@ class RecipeUpdateSerializer(RecipeCreateSerializer):
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        
+
         instance.save()
 
         if ingredients_data_list is not None:
