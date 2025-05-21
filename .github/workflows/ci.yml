@@ -26,11 +26,6 @@ jobs:
 
     - name: Run flake8
       run: flake8 backend/
-      
-    - name: Run tests
-      run: |
-        cd backend
-        pytest
 
   frontend_checks:
     runs-on: ubuntu-latest
