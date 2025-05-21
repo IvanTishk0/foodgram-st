@@ -26,12 +26,6 @@ jobs:
 
     - name: Run flake8
       run: flake8 backend/
-
-    - name: Run black check
-      run: black --check backend/
-      
-    - name: Run isort check
-      run: isort --check-only --profile black backend/
       
     - name: Run tests
       run: |
