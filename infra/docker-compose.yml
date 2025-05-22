@@ -19,9 +19,7 @@ services:
       retries: 5
 
   backend:
-    build:
-      context: ../backend # Путь к Dockerfile бэкенда относительно infra/
-      dockerfile: Dockerfile
+    image: ${DOCKER_USERNAME}/foodgram-backend:latest
     container_name: foodgram_backend
     restart: always
     volumes:
@@ -60,9 +58,7 @@ services:
                gunicorn foodgram.wsgi:application --bind 0.0.0.0:8000"
 
   frontend:
-    build:
-      context: ../frontend # Путь к Dockerfile фронтенда относительно infra/
-      dockerfile: Dockerfile
+    image: ${DOCKER_USERNAME}/foodgram-frontend:latest
     container_name: foodgram_frontend
     restart: always
     volumes:

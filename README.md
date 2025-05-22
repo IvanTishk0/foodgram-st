@@ -26,6 +26,7 @@ POSTGRES_HOST=db
 POSTGRES_PORT=5432
 SECRET_KEY=your-secret-key
 DEBUG=False
+DOCKER_USERNAME=your-dockerhub-username
 ```
 
 4. Запустить docker-compose:
@@ -63,16 +64,25 @@ docker-compose logs backend
 docker-compose down
 ```
 
-## Настройка CI/CD
+## Настройка CI/CD и автоматической публикации образов
 
-Для автоматической проверки, сборки и деплоя проекта используется GitHub Actions.
+Для автоматической проверки, сборки и публикации Docker-образов используется GitHub Actions.
 
-### Настройка секретов
+### Настройка секретов для CI/CD
 
 Для корректной работы CI/CD необходимо добавить следующие секреты в репозиторий:
 
 1. `DOCKER_USERNAME` - ваше имя пользователя на Docker Hub
 2. `DOCKER_PASSWORD` - ваш пароль или токен для Docker Hub
+
+Для автоматического деплоя дополнительно требуются:
+1. `HOST` - IP-адрес вашего сервера
+2. `USERNAME` - имя пользователя SSH для доступа к серверу
+3. `SSH_KEY` - приватный SSH-ключ для доступа к серверу
+4. `POSTGRES_USER` - имя пользователя базы данных PostgreSQL
+5. `POSTGRES_PASSWORD` - пароль базы данных PostgreSQL
+6. `POSTGRES_DB` - имя базы данных PostgreSQL
+7. `SECRET_KEY` - секретный ключ для Django
 
 Добавление секретов:
 1. Перейдите в настройки репозитория
@@ -84,10 +94,31 @@ docker-compose down
 
 При каждом пуше или pull request в ветки main или master автоматически запускаются:
 
-1. Проверка кода бэкенда с помощью flake8, black и isort
-2. Запуск тестов бэкенда с помощью pytest
-3. Проверка кода фронтенда с помощью ESLint
-4. Сборка и публикация Docker-образов (только для пушей в main или master)
+1. Проверка кода бэкенда с помощью flake8
+2. Проверка кода фронтенда с помощью ESLint
+3. Сборка и публикация Docker-образов на Docker Hub (только для пушей в main или master)
+4. Автоматическое развертывание на сервер (если настроены соответствующие секреты)
+
+Образы публикуются с двумя тегами:
+- `latest` - всегда указывает на последнюю версию
+- `YYYYMMDDHHmmss` - версия с временной меткой для возможности отката
+
+### Ручная публикация образов
+
+Для ручной публикации образов выполните:
+
+```bash
+# Войти в Docker Hub
+docker login
+
+# Собрать и пометить образы
+docker build -t username/foodgram-backend:latest ./backend
+docker build -t username/foodgram-frontend:latest ./frontend
+
+# Опубликовать образы
+docker push username/foodgram-backend:latest
+docker push username/foodgram-frontend:latest
+```
 
 ## Запуск проекта
 
