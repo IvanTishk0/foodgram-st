@@ -1,6 +1,8 @@
 frontend/node_modules
 infra/frontend/build
 .env
+backend/postgres_data/
+foodgram-st-main/backend/postgres_data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
