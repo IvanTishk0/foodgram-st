@@ -1,7 +1,13 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 User = get_user_model()
+
+MIN_COOKING_TIME = 1
+MAX_COOKING_TIME = 32000
+MIN_INGREDIENT_AMOUNT = 1
+MAX_INGREDIENT_AMOUNT = 32000
 
 
 class Ingredient(models.Model):
@@ -35,7 +41,11 @@ class Recipe(models.Model):
         related_name='recipes',
         verbose_name='Ингредиенты'
     )
-    cooking_time = models.PositiveIntegerField(
+    cooking_time = models.PositiveSmallIntegerField(
+        validators=[
+            MinValueValidator(MIN_COOKING_TIME),
+            MaxValueValidator(MAX_COOKING_TIME)
+        ],
         verbose_name='Время приготовления (мин)'
     )
     pub_date = models.DateTimeField(
@@ -63,9 +73,16 @@ class RecipeIngredient(models.Model):
         on_delete=models.CASCADE,
         related_name='ingredient_recipes'
     )
-    amount = models.PositiveIntegerField(verbose_name='Количество')
+    amount = models.PositiveIntegerField(
+        validators=[
+            MinValueValidator(MIN_INGREDIENT_AMOUNT),
+            MaxValueValidator(MAX_INGREDIENT_AMOUNT)
+        ],
+        verbose_name='Количество'
+    )
 
     class Meta:
+        ordering = ['recipe', 'ingredient']
         verbose_name = 'Ингредиент в рецепте'
         verbose_name_plural = 'Ингредиенты в рецепте'
         unique_together = ('recipe', 'ingredient')
@@ -87,6 +104,7 @@ class Favorite(models.Model):
     )
 
     class Meta:
+        ordering = ['user', 'recipe']
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
         unique_together = ('user', 'recipe')
@@ -108,6 +126,7 @@ class ShoppingCart(models.Model):
     )
 
     class Meta:
+        ordering = ['user', 'recipe']
         verbose_name = 'Корзина покупок'
         verbose_name_plural = 'Корзина покупок'
         unique_together = ('user', 'recipe')

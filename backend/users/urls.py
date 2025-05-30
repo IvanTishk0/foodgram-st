@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (
+from api.views import (
     CurrentUserView, UserAvatarUpdateView,
     SetPasswordView, CustomAuthToken, LogoutView,
     SubscriptionListView, SubscribeView, UserDetailView,
