@@ -111,7 +111,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 {'detail': 'Учетная запись не авторизована.'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
-        
+
         ingredients = RecipeIngredient.objects.filter(
             recipe__in_shopping_carts__user=request.user
         ).values(
@@ -126,7 +126,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             f'({item["ingredient__measurement_unit"]}) — {item["amount"]}'
             for item in ingredients
         ]
-        
+
         content = '\n'.join(lines)
         response = HttpResponse(content, content_type='text/plain')
         response['Content-Disposition'] = (

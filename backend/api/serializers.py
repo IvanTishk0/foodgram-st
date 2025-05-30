@@ -2,11 +2,9 @@ from rest_framework import serializers
 from recipes.models import Ingredient, Recipe, RecipeIngredient
 from drf_extra_fields.fields import Base64ImageField
 from users.models import User, Follow
-from django.contrib.auth import get_user_model, authenticate
+from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.validators import RegexValidator
-
-User = get_user_model()
 
 MIN_INGREDIENT_AMOUNT = 1
 MAX_INGREDIENT_AMOUNT = 32000
