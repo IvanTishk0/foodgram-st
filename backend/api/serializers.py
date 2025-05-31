@@ -123,12 +123,13 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 
 class RecipeCreateSerializer(serializers.ModelSerializer):
-    ingredients_write = RecipeIngredientWriteSerializer(
+    ingredients = RecipeIngredientWriteSerializer(
         many=True,
         write_only=True,
-        source='recipe_ingredients_data_for_write'
+        source='recipe_ingredients_data_for_write',
+        allow_empty=False
     )
-    ingredients = RecipeIngredientReadSerializer(
+    ingredients_read = RecipeIngredientReadSerializer(
         many=True,
         read_only=True,
         source='recipe_ingredients'
@@ -144,7 +145,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'ingredients',
-            'ingredients_write',
+            'ingredients_read',
             'image',
             'name',
             'text',
@@ -172,13 +173,47 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
 
 
 class RecipeUpdateSerializer(RecipeCreateSerializer):
-    ingredients_write = RecipeIngredientWriteSerializer(
+    ingredients = RecipeIngredientWriteSerializer(
         many=True,
         write_only=True,
         source='recipe_ingredients_data_for_write',
         required=False
     )
+    ingredients_read = RecipeIngredientReadSerializer(
+        many=True,
+        read_only=True,
+        source='recipe_ingredients'
+    )
     image = Base64ImageField(required=False, allow_null=True)
+
+    class Meta(RecipeCreateSerializer.Meta):
+        fields = (
+            'id',
+            'ingredients',
+            'ingredients_read',
+            'image',
+            'name',
+            'text',
+            'cooking_time'
+        )
+        extra_kwargs = {
+            'name': {'required': False},
+            'text': {'required': False},
+            'cooking_time': {'required': False},
+            'ingredients_read': {'read_only': True}
+        }
+
+    def validate(self, attrs):
+        if self.instance is not None:
+            if 'ingredients' not in self.initial_data:
+                raise serializers.ValidationError(
+                    {'ingredients': ['Поле ingredients является обязательным.']}
+                )
+            if 'ingredients' in self.initial_data and not self.initial_data['ingredients']:
+                raise serializers.ValidationError(
+                    {'ingredients': ['Список ингредиентов не может быть пустым.']}
+                )
+        return super().validate(attrs)
 
     def update(self, instance, validated_data):
         ingredients_data_list = validated_data.pop(
@@ -322,19 +357,29 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(read_only=True)
-    author = UserSerializer(read_only=True)
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    author = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
 
     class Meta:
         model = Follow
         fields = ('id', 'user', 'author')
 
     def validate_author(self, value):
-        if value == self.context['request'].user:
+        if self.context['request'].user == value:
             raise serializers.ValidationError(
                 'Нельзя подписаться на самого себя.'
             )
+        if self.context['request'].user.follower.filter(author=value).exists():
+             raise serializers.ValidationError(
+                 'Вы уже подписаны на этого пользователя.'
+             )
         return value
+
+    def create(self, validated_data):
+        user = validated_data.get('user')
+        author = validated_data.get('author')
+        follow = Follow.objects.create(user=user, author=author)
+        return follow
 
 
 class SetPasswordSerializer(serializers.Serializer):

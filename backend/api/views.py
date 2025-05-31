@@ -40,14 +40,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(name__istartswith=name)
         return queryset
 
-    def list(self, request, *args, **kwargs):
-        name = request.query_params.get('name')
-        queryset = self.filter_queryset(self.get_queryset())
-
-        if name:
-            serializer = self.get_serializer(queryset, many=True)
-            return Response(serializer.data)
-
 
 class RecipePagination(PageNumberPagination):
     page_size_query_param = 'limit'
@@ -64,6 +56,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     pagination_class = RecipePagination
     permission_classes = [IsAuthorOrReadOnly]
+
+    def get_permissions(self):
+        if self.action in [
+            'add_to_shopping_cart',
+            'remove_from_shopping_cart',
+            'download_shopping_cart'
+        ]:
+            return [IsAuthenticatedOrReadOnly()]
+        return super().get_permissions()
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -137,98 +138,78 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=['post'],
+        methods=['post', 'delete'],
         url_path='shopping_cart',
         permission_classes=[IsAuthenticatedOrReadOnly]
     )
-    def add_to_shopping_cart(self, request, pk=None):
+    def shopping_cart(self, request, pk=None):
         if not request.user.is_authenticated:
             return Response(
                 {'detail': 'Учетная запись не авторизована.'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
         recipe = self.get_object()
-        if request.user.shopping_cart.filter(recipe=recipe).exists():
+
+        if request.method == 'POST':
+            if request.user.shopping_cart.filter(recipe=recipe).exists():
+                return Response(
+                    {'errors': 'Рецепт уже в списке покупок.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            request.user.shopping_cart.create(recipe=recipe)
             return Response(
-                {'errors': 'Рецепт уже в списке покупок.'},
-                status=status.HTTP_400_BAD_REQUEST
+                {'success': 'Рецепт добавлен в список покупок.'},
+                status=status.HTTP_201_CREATED
             )
-        request.user.shopping_cart.create(recipe=recipe)
-        return Response(
-            {'success': 'Рецепт добавлен в список покупок.'},
-            status=status.HTTP_201_CREATED
-        )
+        elif request.method == 'DELETE':
+            cart_item = request.user.shopping_cart.filter(recipe=recipe)
+            if not cart_item.exists():
+                return Response(
+                    {'errors': 'Рецепта нет в списке покупок.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            cart_item.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     @action(
         detail=True,
-        methods=['delete'],
-        url_path='remove-shopping-cart',
-        permission_classes=[IsAuthenticatedOrReadOnly]
-    )
-    def remove_from_shopping_cart(self, request, pk=None):
-        if not request.user.is_authenticated:
-            return Response(
-                {'detail': 'Учетная запись не авторизована.'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-        recipe = self.get_object()
-        cart_item = request.user.shopping_cart.filter(recipe=recipe)
-        if not cart_item.exists():
-            return Response(
-                {'errors': 'Рецепта нет в списке покупок.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        cart_item.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(
-        detail=True,
-        methods=['post'],
+        methods=['post', 'delete'],
         url_path='favorite',
         permission_classes=[IsAuthenticatedOrReadOnly]
     )
-    def add_to_favorite(self, request, pk=None):
+    def favorite(self, request, pk=None):
         if not request.user.is_authenticated:
             return Response(
                 {'detail': 'Учетная запись не авторизована.'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
         recipe = self.get_object()
-        if request.user.favorites.filter(recipe=recipe).exists():
-            return Response(
-                {'errors': 'Рецепт уже в избранном.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        request.user.favorites.create(recipe=recipe)
-        serializer = RecipeSerializer(
-            recipe, context={'request': request}
-        )
-        return Response(
-            serializer.data,
-            status=status.HTTP_201_CREATED
-        )
 
-    @action(
-        detail=True,
-        methods=['delete'],
-        url_path='remove-favorite',
-        permission_classes=[IsAuthenticatedOrReadOnly]
-    )
-    def remove_from_favorite(self, request, pk=None):
-        if not request.user.is_authenticated:
-            return Response(
-                {'detail': 'Учетная запись не авторизована.'},
-                status=status.HTTP_401_UNAUTHORIZED
+        if request.method == 'POST':
+            if request.user.favorites.filter(recipe=recipe).exists():
+                return Response(
+                    {'errors': 'Рецепт уже в избранном.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            request.user.favorites.create(recipe=recipe)
+            serializer = RecipeSerializer(
+                recipe, context={'request': request}
             )
-        recipe = self.get_object()
-        fav_item = request.user.favorites.filter(recipe=recipe)
-        if not fav_item.exists():
             return Response(
-                {'errors': 'Рецепта нет в избранном.'},
-                status=status.HTTP_400_BAD_REQUEST
+                serializer.data,
+                status=status.HTTP_201_CREATED
             )
-        fav_item.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        elif request.method == 'DELETE':
+            fav_item = request.user.favorites.filter(recipe=recipe)
+            if not fav_item.exists():
+                return Response(
+                    {'errors': 'Рецепта нет в избранном.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            fav_item.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class UserPagination(PageNumberPagination):
@@ -288,6 +269,11 @@ class UserAvatarUpdateView(generics.UpdateAPIView):
         return self.request.user
 
     def update(self, request, *args, **kwargs):
+        if 'avatar' not in request.data:
+            return Response(
+                {'avatar': 'Поле avatar является обязательным.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         kwargs['partial'] = True
         try:
             response = super().update(request, *args, **kwargs)
@@ -343,6 +329,7 @@ class CustomAuthToken(ObtainAuthToken):
         try:
             serializer.is_valid(raise_exception=True)
             user = serializer.validated_data['user']
+            
             token, _ = Token.objects.get_or_create(user=user)
 
             user_data = UserSerializer(user).data
@@ -370,10 +357,7 @@ class LogoutView(APIView):
                 )
 
             request.user.auth_token.delete()
-            return Response(
-                {'message': 'Успешный выход из системы'},
-                status=status.HTTP_200_OK
-            )
+            return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception:
             return Response(
                 {'error': 'Ошибка при выходе из системы'},
@@ -399,17 +383,27 @@ class SubscribeView(APIView):
 
     def post(self, request, id):
         author = get_object_or_404(get_user_model(), id=id)
+
         if request.user.follower.filter(author=author).exists():
             return Response(
                 {'errors': 'Вы уже подписаны на этого пользователя.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        follow = request.user.follower.create(author=author)
-        serializer = SubscriptionSerializer(
+
+        serializer = FollowSerializer(data={
+            'user': request.user.id,
+            'author': author.id
+            }, context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        follow = serializer.save(user=request.user)
+
+        response_serializer = SubscriptionSerializer(
             follow,
             context={'request': request}
         )
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, id):
         author = get_object_or_404(get_user_model(), id=id)
@@ -436,19 +430,15 @@ class UserDetailView(RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 
-class UserListCreateView(APIView):
+class UserListCreateView(generics.ListCreateAPIView):
+    queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]
+    pagination_class = UserPagination
 
-    def get(self, request):
-        users = User.objects.all()
-        serializer = UserSerializer(users, many=True)
-        return Response(serializer.data)
-
-    def post(self, request):
-        serializer = UserCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return UserCreateSerializer
+        return UserSerializer
 
 
 class ResetPasswordView(APIView):
