@@ -207,11 +207,16 @@ class RecipeUpdateSerializer(RecipeCreateSerializer):
         if self.instance is not None:
             if 'ingredients' not in self.initial_data:
                 raise serializers.ValidationError(
-                    {'ingredients': ['Поле ingredients является обязательным.']}
+                    {'ingredients': [
+                        'Поле ingredients является обязательным при обновлении рецепта.'
+                    ]}
                 )
-            if 'ingredients' in self.initial_data and not self.initial_data['ingredients']:
+            if ('ingredients' in self.initial_data
+                and not self.initial_data['ingredients']):
                 raise serializers.ValidationError(
-                    {'ingredients': ['Список ингредиентов не может быть пустым.']}
+                    {'ingredients': [
+                        'Список ингредиентов не может быть пустым.'
+                    ]}
                 )
         return super().validate(attrs)
 
@@ -370,9 +375,9 @@ class FollowSerializer(serializers.ModelSerializer):
                 'Нельзя подписаться на самого себя.'
             )
         if self.context['request'].user.follower.filter(author=value).exists():
-             raise serializers.ValidationError(
-                 'Вы уже подписаны на этого пользователя.'
-             )
+            raise serializers.ValidationError(
+                'Вы уже подписаны на этого пользователя.'
+            )
         return value
 
     def create(self, validated_data):

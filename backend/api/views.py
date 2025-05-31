@@ -329,7 +329,7 @@ class CustomAuthToken(ObtainAuthToken):
         try:
             serializer.is_valid(raise_exception=True)
             user = serializer.validated_data['user']
-            
+
             token, _ = Token.objects.get_or_create(user=user)
 
             user_data = UserSerializer(user).data
@@ -390,9 +390,10 @@ class SubscribeView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        serializer = FollowSerializer(data={
-            'user': request.user.id,
-            'author': author.id
+        serializer = FollowSerializer(
+            data={
+                'user': request.user.id,
+                'author': author.id
             }, context={'request': request}
         )
         serializer.is_valid(raise_exception=True)
@@ -403,7 +404,10 @@ class SubscribeView(APIView):
             context={'request': request}
         )
 
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        return Response(
+            response_serializer.data,
+            status=status.HTTP_201_CREATED
+        )
 
     def delete(self, request, id):
         author = get_object_or_404(get_user_model(), id=id)
