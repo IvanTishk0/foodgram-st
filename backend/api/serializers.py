@@ -208,16 +208,16 @@ class RecipeUpdateSerializer(RecipeCreateSerializer):
             if 'ingredients' not in self.initial_data:
                 raise serializers.ValidationError(
                     {'ingredients': [
-                        'Поле ingredients является обязательным при обновлении рецепта.'
+                        'Поле ingredients является обязательным.'
                     ]}
                 )
-            if ('ingredients' in self.initial_data
-                and not self.initial_data['ingredients']):
-                raise serializers.ValidationError(
-                    {'ingredients': [
-                        'Список ингредиентов не может быть пустым.'
-                    ]}
-                )
+            if 'ingredients' in self.initial_data:
+                if not self.initial_data['ingredients']:
+                    raise serializers.ValidationError(
+                        {'ingredients': [
+                            'Список ингредиентов не может быть пустым.'
+                        ]}
+                    )
         return super().validate(attrs)
 
     def update(self, instance, validated_data):
