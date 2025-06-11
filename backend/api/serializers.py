@@ -64,7 +64,9 @@ class RecipeIngredientWriteSerializer(serializers.ModelSerializer):
 class RecipeIngredientReadSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField(source='ingredient.id')
     name = serializers.ReadOnlyField(source='ingredient.name')
-    measurement_unit = serializers.ReadOnlyField(source='ingredient.measurement_unit')
+    measurement_unit = serializers.ReadOnlyField(
+        source='ingredient.measurement_unit'
+    )
     amount = serializers.IntegerField()
 
     class Meta:
@@ -87,7 +89,15 @@ class AuthorRecipeSerializer(serializers.ModelSerializer):
             'is_subscribed',
             'avatar'
         )
-        read_only_fields = ('id', 'username', 'first_name', 'last_name', 'email', 'is_subscribed', 'avatar')
+        read_only_fields = (
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'is_subscribed',
+            'avatar'
+        )
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
@@ -183,7 +193,13 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             'is_favorited', 'is_in_shopping_cart', 'name', 'image',
             'text', 'cooking_time'
         )
-        read_only_fields = ('id', 'author', 'is_favorited', 'is_in_shopping_cart', 'ingredients_read')
+        read_only_fields = (
+            'id',
+            'author',
+            'is_favorited',
+            'is_in_shopping_cart',
+            'ingredients_read'
+        )
 
     def validate(self, attrs):
         if 'image' not in attrs or not attrs['image']:
@@ -263,14 +279,19 @@ class RecipeUpdateSerializer(RecipeCreateSerializer):
     def validate(self, attrs):
         request = self.context.get('request')
         if request and request.method == 'PATCH':
-            ingredients_value = self.initial_data.get('ingredients', serializers.empty)
+            ingredients_value = self.initial_data.get(
+                'ingredients',
+                serializers.empty
+            )
             if ingredients_value is serializers.empty:
                 raise serializers.ValidationError({
                     'ingredients': ['Поле ingredients является обязательным.']
                 })
             if not ingredients_value:
                 raise serializers.ValidationError({
-                    'ingredients': ['Список ингредиентов не может быть пустым.']
+                    'ingredients': [
+                        'Список ингредиентов не может быть пустым.'
+                    ]
                 })
 
         ingredients_data = attrs.get('recipe_ingredients_data_for_write', [])
