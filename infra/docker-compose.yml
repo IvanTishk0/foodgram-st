@@ -24,6 +24,8 @@ services:
       dockerfile: Dockerfile
     container_name: foodgram_backend
     restart: always
+    ports:
+      - "8000:8000"
     volumes:
       - static_volume:/app/static # Для статики Django (админка)
       - media_volume:/app/media   # Для медиафайлов Django (аватары)

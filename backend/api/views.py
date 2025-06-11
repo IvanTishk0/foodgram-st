@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions, status, generics
+from rest_framework import viewsets, permissions, status, generics, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -22,7 +22,8 @@ from api.serializers import (
     RecipeCreateSerializer, RecipeUpdateSerializer,
     UserSerializer, FollowSerializer, UserCreateSerializer,
     SetPasswordSerializer, SubscriptionSerializer,
-    CustomAuthTokenSerializer
+    CustomAuthTokenSerializer, UserDetailSerializer,
+    UserAvatarSerializer, RecipeShortSerializer
 )
 
 User = get_user_model()
@@ -32,24 +33,42 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = [permissions.AllowAny]
+    pagination_class = None
 
     def get_queryset(self):
         queryset = super().get_queryset()
         name = self.request.query_params.get('name')
         if name:
-            queryset = queryset.filter(name__istartswith=name)
-        return queryset
+            queryset = queryset.filter(name__startswith=name)
+        return queryset.order_by('name')
 
 
 class RecipePagination(PageNumberPagination):
+    page_size = 6
     page_size_query_param = 'limit'
+    max_page_size = 6
+
+    def get_paginated_response(self, data):
+        return Response({
+            'count': self.page.paginator.count,
+            'next': self.get_next_link(),
+            'previous': self.get_previous_link(),
+            'results': data
+        })
 
 
-class IsAuthorOrReadOnly(BasePermission):
+class IsAuthorOrReadOnly(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return (
+            request.method in permissions.SAFE_METHODS
+            or request.user.is_authenticated
+        )
+
     def has_object_permission(self, request, view, obj):
-        if request.method in ('GET', 'HEAD', 'OPTIONS'):
-            return True
-        return obj.author == request.user
+        return (
+            request.method in permissions.SAFE_METHODS
+            or obj.author == request.user
+        )
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -61,7 +80,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if self.action in [
             'add_to_shopping_cart',
             'remove_from_shopping_cart',
-            'download_shopping_cart'
+            'download_shopping_cart',
+            'add_to_favorites',
+            'remove_from_favorites'
         ]:
             return [IsAuthenticatedOrReadOnly()]
         return super().get_permissions()
@@ -69,8 +90,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return RecipeCreateSerializer
-        if self.action in ['update', 'partial_update']:
+        if self.action in ['partial_update', 'update']:
             return RecipeUpdateSerializer
+        if self.action in ['add_to_shopping_cart', 'add_to_favorites']:
+            return RecipeShortSerializer
         return RecipeSerializer
 
     def get_queryset(self):
@@ -92,7 +115,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        recipe = serializer.save(author=self.request.user)
+        return RecipeSerializer(
+            recipe,
+            context={'request': self.request}
+        ).data
 
     @action(detail=True, methods=['get'], url_path='get-link')
     def short_link(self, request, pk=None):
@@ -157,8 +184,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             request.user.shopping_cart.create(recipe=recipe)
+            serializer = RecipeShortSerializer(recipe)
             return Response(
-                {'success': 'Рецепт добавлен в список покупок.'},
+                serializer.data,
                 status=status.HTTP_201_CREATED
             )
         elif request.method == 'DELETE':
@@ -193,9 +221,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             request.user.favorites.create(recipe=recipe)
-            serializer = RecipeSerializer(
-                recipe, context={'request': request}
-            )
+            serializer = RecipeShortSerializer(recipe)
             return Response(
                 serializer.data,
                 status=status.HTTP_201_CREATED
@@ -210,6 +236,21 @@ class RecipeViewSet(viewsets.ModelViewSet):
             fav_item.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    @action(
+        detail=True,
+        methods=['post'],
+        permission_classes=[IsAuthenticatedOrReadOnly]
+    )
+    def add_to_favorites(self, request, pk=None):
+        recipe = self.get_object()
+        if request.user.favorites.filter(recipe=recipe).exists():
+            raise serializers.ValidationError(
+                {'errors': 'Рецепт уже добавлен в избранное.'}
+            )
+        request.user.favorites.add(recipe)
+        serializer = self.get_serializer(recipe)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class UserPagination(PageNumberPagination):
@@ -254,7 +295,7 @@ class CurrentUserView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        serializer = UserSerializer(request.user)
+        serializer = UserDetailSerializer(request.user, context={'request': request})
         return Response(
             serializer.data,
             status=status.HTTP_200_OK
@@ -262,7 +303,7 @@ class CurrentUserView(APIView):
 
 
 class UserAvatarUpdateView(generics.UpdateAPIView):
-    serializer_class = UserSerializer
+    serializer_class = UserAvatarSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
@@ -329,16 +370,10 @@ class CustomAuthToken(ObtainAuthToken):
         try:
             serializer.is_valid(raise_exception=True)
             user = serializer.validated_data['user']
-
             token, _ = Token.objects.get_or_create(user=user)
-
-            user_data = UserSerializer(user).data
-
             return Response({
-                'auth_token': token.key,
-                'user': user_data
+                'auth_token': token.key
             }, status=status.HTTP_200_OK)
-
         except Exception as e:
             return Response({
                 'error': str(e)
@@ -430,7 +465,7 @@ class UserListView(ListAPIView):
 
 class UserDetailView(RetrieveAPIView):
     queryset = User.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = UserDetailSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 
