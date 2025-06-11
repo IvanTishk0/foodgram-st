@@ -32,7 +32,7 @@ DOCKER_USERNAME=your-dockerhub-username
 4. Запустить docker-compose:
 ```bash
 cd infra
-docker-compose up -d
+docker-compose -f docker-compose.yml up --build
 ```
 
 5. После запуска контейнеров будут выполнены следующие шаги автоматически:
